@@ -97,44 +97,59 @@ export const DataSourcesPage: React.FC = () => {
 
   const handleCreateIndex = async (request: IndexCreationRequest) => {
     try {
+      // Start index creation
+      const response = await leannApi.createIndex(request);
+      const progressId = response.progress_id;
+
       setIndexCreationProgress({
         status: 'processing',
         progress: 0,
-        currentStep: 'Initializing...',
+        currentStep: 'Starting index creation...',
         totalSteps: 4,
       });
 
-      // Simulate index creation progress
-      const steps = [
-        'Initializing embedding model...',
-        'Processing documents...',
-        'Creating vector index...',
-        'Finalizing index...',
-      ];
+      // Poll for progress updates
+      const pollProgress = async () => {
+        try {
+          const progress = await leannApi.getCreationProgress(progressId);
+          
+          setIndexCreationProgress({
+            status: progress.status === 'completed' ? 'completed' : 
+                   progress.status === 'error' ? 'error' : 'processing',
+            progress: progress.progress,
+            currentStep: progress.currentStep,
+            totalSteps: 4,
+            error: progress.error,
+          });
 
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setIndexCreationProgress({
-          status: 'processing',
-          progress: Math.round(((i + 1) / steps.length) * 100),
-          currentStep: steps[i],
-          totalSteps: steps.length,
-        });
-      }
+          if (progress.status === 'completed') {
+            // Close dialog after a delay and refresh data
+            setTimeout(() => {
+              setShowCreateIndexDialog(false);
+              setIndexCreationProgress(undefined);
+              loadDataSources(); // Reload to show new index
+            }, 2000);
+            return;
+          } else if (progress.status === 'error') {
+            return; // Stop polling on error
+          }
 
-      setIndexCreationProgress({
-        status: 'completed',
-        progress: 100,
-        currentStep: 'Index created successfully!',
-        totalSteps: steps.length,
-      });
+          // Continue polling if still processing
+          setTimeout(pollProgress, 2000);
+        } catch (err) {
+          console.error('Failed to get progress:', err);
+          setIndexCreationProgress({
+            status: 'error',
+            progress: 0,
+            currentStep: 'Failed to track progress',
+            totalSteps: 4,
+            error: err instanceof Error ? err.message : 'Unknown error',
+          });
+        }
+      };
 
-      // Close dialog after a delay
-      setTimeout(() => {
-        setShowCreateIndexDialog(false);
-        setIndexCreationProgress(undefined);
-        loadDataSources(); // Reload to show new index
-      }, 2000);
+      // Start polling
+      setTimeout(pollProgress, 1000);
 
     } catch (err) {
       setIndexCreationProgress({

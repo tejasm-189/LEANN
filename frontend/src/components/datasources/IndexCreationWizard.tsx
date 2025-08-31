@@ -45,8 +45,8 @@ const EMBEDDING_MODELS = [
 ];
 
 const BACKEND_OPTIONS = [
-  { value: 'hnsw', label: 'HNSW (Recommended)', description: 'Fast and efficient for most use cases' },
-  { value: 'diskann', label: 'DiskANN (Advanced)', description: 'Better for very large datasets' },
+  { value: 'diskann', label: 'DiskANN (Recommended)', description: 'Better for very large datasets' },
+  { value: 'hnsw', label: 'HNSW (Advanced)', description: 'Fast and efficient - requires C++ build tools' },
 ];
 
 const DATA_SOURCE_TYPES = [
@@ -67,7 +67,7 @@ export const IndexCreationWizard: React.FC<IndexCreationWizardProps> = ({
   const [indexName, setIndexName] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['document']);
   const [embeddingModel, setEmbeddingModel] = useState('sentence-transformers/all-MiniLM-L6-v2');
-  const [backend, setBackend] = useState<'hnsw' | 'diskann'>('hnsw');
+  const [backend, setBackend] = useState<'hnsw' | 'diskann'>('diskann');
   const [chunkSize, setChunkSize] = useState(512);
   const [chunkOverlap, setChunkOverlap] = useState(50);
 

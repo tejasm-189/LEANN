@@ -335,15 +335,36 @@ async def create_index(request: IndexCreationRequest):
                 
                 # Build the command based on data sources
                 if "document" in request.dataSources:
-                    # Use document RAG app
+                    # Change to project root directory
+                    project_root = Path(__file__).parent.parent
+                    
+                    # Set up environment with proper Python path and encoding
+                    env = os.environ.copy()
+                    leann_core_path = project_root / "packages" / "leann-core" / "src"
+                    apps_path = project_root / "apps"
+                    
+                    # Add both paths to PYTHONPATH
+                    python_paths = [str(leann_core_path), str(apps_path)]
+                    if "PYTHONPATH" in env:
+                        env["PYTHONPATH"] = os.pathsep.join(python_paths + [env["PYTHONPATH"]])
+                    else:
+                        env["PYTHONPATH"] = os.pathsep.join(python_paths)
+                    
+                    # Set UTF-8 encoding for Windows console
+                    env["PYTHONIOENCODING"] = "utf-8"
+                    env["PYTHONLEGACYWINDOWSSTDIO"] = "1"
+                    
+                    # Use document RAG script directly instead of module
+                    script_path = project_root / "apps" / "document_rag.py"
                     cmd = [
-                        sys.executable, "-m", "apps.document_rag",
+                        sys.executable, str(script_path),
                         "--data-dir", "./data",
-                        "--index-path", str(index_path),
+                        "--index-dir", str(index_path),
                         "--embedding-model", request.embeddingModel,
-                        "--backend", request.backend,
+                        "--backend-name", request.backend,
                         "--chunk-size", str(request.chunkSize),
                         "--chunk-overlap", str(request.chunkOverlap),
+                        "--force-rebuild",  # Force rebuild to create new index
                     ]
                 else:
                     raise ValueError("Unsupported data source combination")
@@ -352,20 +373,20 @@ async def create_index(request: IndexCreationRequest):
                 _creation_progress[progress_id].progress = 50
                 _creation_progress[progress_id].currentStep = "Creating embeddings and building index..."
                 
-                # Change to project root directory
-                project_root = Path(__file__).parent.parent
-                
-                # Run the indexing command
+                # Run the indexing command with proper environment
                 result = subprocess.run(
                     cmd,
                     cwd=project_root,
+                    env=env,
                     capture_output=True,
                     text=True,
                     timeout=600  # 10 minute timeout
                 )
                 
                 if result.returncode != 0:
-                    raise Exception(f"Index creation failed: {result.stderr}")
+                    error_msg = f"Index creation failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
                 
                 # Update progress: Step 3 - Finalizing
                 _creation_progress[progress_id].progress = 90

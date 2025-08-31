@@ -100,6 +100,42 @@ class LeannApiService {
       throw error;
     }
   }
+
+  async createIndex(request: IndexCreationRequest): Promise<{ message: string; progress_id: string }> {
+    try {
+      const response = await fetch(`${BASE_URL}/indices/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Index creation failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Create index API error:', error);
+      throw error;
+    }
+  }
+
+  async getCreationProgress(progressId: string): Promise<IndexCreationProgress> {
+    try {
+      const response = await fetch(`${BASE_URL}/indices/create/${progressId}/progress`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to get progress: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get creation progress API error:', error);
+      throw error;
+    }
+  }
 }
 
 export const leannApi = new LeannApiService();
