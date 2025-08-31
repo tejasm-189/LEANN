@@ -3,6 +3,7 @@ import { Typography, Box } from '@mui/material';
 import { MainLayout } from './components/layout/MainLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Search } from './pages/Search';
+import { DataSourcesPage } from './components/datasources/DataSourcesPage';
 import { MENU_ITEMS } from './constants/navigation';
 
 function App() {
@@ -14,6 +15,8 @@ function App() {
         return <Dashboard />;
       case 'search':
         return <Search />;
+      case 'sources':
+        return <DataSourcesPage />;
       default:
         const currentPage = MENU_ITEMS.find(item => item.id === selectedItem);
         return (
